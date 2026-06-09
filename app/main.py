@@ -2,6 +2,7 @@ from fastapi import FastAPI
 
 from app.models import UserRequest
 from app.graph import run_graph
+from app.audit import get_logs
 
 from app.audit import create_table
 from app.memory import (
@@ -47,3 +48,7 @@ def handle_request(request: UserRequest):
         "stm": get_stm(request.user_id),
         "ltm": get_ltm(request.user_id)
     }
+
+@app.get("/audit")
+def audit_logs():
+    return {"logs": get_logs()}
