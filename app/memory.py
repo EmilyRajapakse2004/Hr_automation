@@ -1,8 +1,6 @@
 from collections import defaultdict
 
-# -------------------------
-# STM (Short-Term Memory)
-# -------------------------
+# STM - Short-Term Memory
 stm_store = defaultdict(list)
 
 STM_LIMIT = 5
@@ -20,9 +18,7 @@ def get_stm(user_id: str):
     return stm_store[user_id]
 
 
-# -------------------------
-# LTM (Long-Term Memory)
-# -------------------------
+# LTM - Long-Term Memory
 ltm_store = defaultdict(list)
 
 
@@ -34,7 +30,7 @@ def get_ltm(user_id: str):
     return ltm_store[user_id]
 
 
-# simple rule: decide if message is important
+# decide if message is important
 def extract_fact(message: str):
 
     msg = message.lower()
