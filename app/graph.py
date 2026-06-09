@@ -1,13 +1,9 @@
 from langgraph.graph import StateGraph, END
 
 from app.classifier import classify_intent
-from app.router import route_agent
 from app.audit import log_request
 
 
-# -----------------------------
-# State definition (dict-based)
-# -----------------------------
 def init_state(user_id, message):
     return {
         "user_id": user_id,
@@ -19,10 +15,6 @@ def init_state(user_id, message):
     }
 
 
-# -----------------------------
-# Nodes
-# -----------------------------
-
 def classify_node(state):
     intent, confidence = classify_intent(state["message"])
     state["intent"] = intent
@@ -31,8 +23,8 @@ def classify_node(state):
 
 
 def route_node(state):
-    agent = route_agent(state["intent"])
-    state["agent"] = agent
+    from app.router import route_agent   # FIX: avoid import issues
+    state["agent"] = route_agent(state["intent"])
     return state
 
 
@@ -40,7 +32,6 @@ def action_node(state):
     response = state["agent"].process(state["message"])
     state["response"] = response
 
-    # audit log
     log_request(
         state["user_id"],
         state["message"],
@@ -52,9 +43,6 @@ def action_node(state):
     return state
 
 
-# -----------------------------
-# Build Graph
-# -----------------------------
 workflow = StateGraph(dict)
 
 workflow.add_node("classify", classify_node)
@@ -70,13 +58,6 @@ workflow.add_edge("action", END)
 app_graph = workflow.compile()
 
 
-# -----------------------------
-# Runner function
-# -----------------------------
 def run_graph(user_id: str, message: str):
-
     state = init_state(user_id, message)
-
-    result = app_graph.invoke(state)
-
-    return result
+    return app_graph.invoke(state)
