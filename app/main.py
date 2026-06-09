@@ -1,10 +1,7 @@
 from fastapi import FastAPI
 
 from app.models import UserRequest
-from app.classifier import classify_intent
-from app.router import route_agent
-
-from app.audit import create_table, log_request, get_logs
+from app.graph import run_graph
 
 from app.memory import (
     add_to_stm,
@@ -16,14 +13,9 @@ from app.memory import (
 
 app = FastAPI(title="HR Automation Platform")
 
-# -----------------------------
-# Initialize DB
-# -----------------------------
-create_table()
-
 
 # -----------------------------
-# Root endpoints
+# Root
 # -----------------------------
 @app.get("/")
 def root():
@@ -36,61 +28,43 @@ def health():
 
 
 # -----------------------------
-# Core endpoint
+# Core Request Endpoint
 # -----------------------------
 @app.post("/request")
 def handle_request(request: UserRequest):
 
     # -------------------------
-    # 1. STM Memory update
+    # Memory Layer (STM + LTM)
     # -------------------------
     add_to_stm(request.user_id, request.message)
 
-    # -------------------------
-    # 2. LTM extraction
-    # -------------------------
     fact = extract_fact(request.message)
     if fact:
         add_to_ltm(request.user_id, fact)
 
     # -------------------------
-    # 3. Intent classification
+    # LangGraph Execution
     # -------------------------
-    intent, confidence = classify_intent(request.message)
+    result = run_graph(request.user_id, request.message)
 
     # -------------------------
-    # 4. Route to agent
-    # -------------------------
-    agent = route_agent(intent)
-
-    response = agent.process(request.message)
-
-    # -------------------------
-    # 5. Audit logging
-    # -------------------------
-    log_request(
-        request.user_id,
-        request.message,
-        intent,
-        confidence,
-        agent.__class__.__name__
-    )
-
-    # -------------------------
-    # 6. Return response
+    # Response
     # -------------------------
     return {
-        "intent": intent,
-        "confidence": confidence,
-        "response": response,
+        "intent": result.get("intent"),
+        "confidence": result.get("confidence"),
+        "response": result.get("response"),
         "stm": get_stm(request.user_id),
         "ltm": get_ltm(request.user_id)
     }
 
 
 # -----------------------------
-# Audit endpoint
+# Optional: Health Debug View
 # -----------------------------
-@app.get("/audit")
-def audit_logs():
-    return {"logs": get_logs()}
+@app.get("/memory/{user_id}")
+def view_memory(user_id: str):
+    return {
+        "stm": get_stm(user_id),
+        "ltm": get_ltm(user_id)
+    }
