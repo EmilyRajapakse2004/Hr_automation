@@ -33,16 +33,20 @@ def log_request(user_id, message, intent, confidence, agent):
 
 def get_logs():
     conn = get_connection()
-    conn.row_factory = lambda cursor, row: {
-        "id": row[0],
-        "user_id": row[1],
-        "message": row[2],
-        "intent": row[3],
-        "confidence": row[4],
-        "agent": row[5],
-    }
 
-    rows = conn.execute("SELECT * FROM audit_log").fetchall()
+    cursor = conn.cursor()
+    rows = cursor.execute("SELECT * FROM audit_log").fetchall()
+
     conn.close()
 
-    return rows
+    return [
+        {
+            "id": r[0],
+            "user_id": r[1],
+            "message": r[2],
+            "intent": r[3],
+            "confidence": r[4],
+            "agent": r[5],
+        }
+        for r in rows
+    ]
